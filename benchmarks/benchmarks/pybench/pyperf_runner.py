@@ -1,6 +1,7 @@
 # pylint: disable=import-error,no-name-in-module
 import json
 import os
+from multiprocessing import freeze_support
 
 import pyperf
 
@@ -13,7 +14,6 @@ def main():
     params = json.loads(os.environ['PYBENCH_PARAMS'])
 
     benchmark_plan = func(*params)
-
     runner = pyperf.Runner()
     runner.bench_func(
         bench_name,
@@ -23,4 +23,5 @@ def main():
 
 
 if __name__ == '__main__':
+    freeze_support()
     main()

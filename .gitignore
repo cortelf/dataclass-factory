@@ -54,3 +54,5 @@ dmypy.json
 /docs/build
 
 .venv/
+venv/
+benchmarks/data

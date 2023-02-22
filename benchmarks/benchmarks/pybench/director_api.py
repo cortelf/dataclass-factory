@@ -2,7 +2,9 @@
 import inspect
 import json
 import os
+import shutil
 import subprocess
+import sys
 from argparse import ArgumentParser, Namespace
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +15,7 @@ import pyperf
 from matplotlib import pyplot as plt
 
 from benchmarks.pybench.matplotlib_utils import bar_left_aligned_label
+from benchmarks.pybench.pyperf_runner import main
 from benchmarks.pybench.utils import get_function_object_ref
 
 __all__ = ['BenchmarkDirector', 'BenchSchema', 'PlotParams']
@@ -187,7 +190,7 @@ class BenchRunner:
                 params=[schema.kwargs[param] for param in sig.parameters.keys()],
                 extra_args=['-o', str(temp_file)]
             )
-            os.replace(temp_file, result_file)
+            shutil.move(temp_file, result_file)
 
     def launch_benchmark(
         self,
@@ -196,20 +199,27 @@ class BenchRunner:
         params: List[Any],
         extra_args: Iterable[str] = (),
     ):
-        subprocess.run(
-            [
-                'pybench_pyperf_runner',
-                '--inherit-environ', 'PYBENCH_NAME,PYBENCH_ENTRYPOINT,PYBENCH_PARAMS,PLACEHOLDER',
-                # pyperf skips last envvar
-                *extra_args,
-            ],
-            env=os.environ | {
-                'PYBENCH_NAME': bench_name,
-                'PYBENCH_ENTRYPOINT': entrypoint,
-                'PYBENCH_PARAMS': json.dumps(params),
-            },
-            check=True,
-        )
+        os.environ["PYBENCH_NAME"] = bench_name
+        os.environ["PYBENCH_ENTRYPOINT"] = entrypoint
+        os.environ["PYBENCH_PARAMS"] = json.dumps(params)
+
+        sys.argv = ['venv/Scripts/pybench_pyperf_runner-script.py', '--inherit-environ', 'PYBENCH_NAME,PYBENCH_ENTRYPOINT,PYBENCH_PARAMS,PLACEHOLDER', *extra_args]
+        main()
+
+        # subprocess.run(
+        #     [
+        #         'pybench_pyperf_runner',
+        #         '--inherit-environ', 'PYBENCH_NAME,PYBENCH_ENTRYPOINT,PYBENCH_PARAMS,PLACEHOLDER',
+        #         # pyperf skips last envvar
+        #         *extra_args,
+        #     ],
+        #     env=os.environ | {
+        #         'PYBENCH_NAME': bench_name,
+        #         'PYBENCH_ENTRYPOINT': entrypoint,
+        #         'PYBENCH_PARAMS': json.dumps(params),
+        #     },
+        #     check=True,
+        # )
 
 
 def call_by_namespace(func: Callable, namespace: Namespace) -> Any:
